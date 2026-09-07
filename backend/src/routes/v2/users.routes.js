@@ -59,8 +59,14 @@ router.put("/:id", async (req, res, next) => {
 // Delete user
 router.delete("/:id", async (req, res, next) => {
   try {
-    await User.findByIdAndDelete(req.params.id)
-    return res.status(200).json({ msg: "User deleted!!!" });
+    const result = await User.findByIdAndDelete(req.params.id)
+    console.log(result)
+    if(!result) {
+      return res.json({
+        message: "Invalid User ID"
+      })
+    }
+    return res.status(200).json({ message: "User deleted successfully." });
   } catch (error) {
     next(error);
   }
