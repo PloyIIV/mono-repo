@@ -1,92 +1,65 @@
 import { Router } from "express";
-// import { users } from "../../fakeDB/fakeUsers.js";
+import { User } from "../../models/user.model.js";
 
 export const router = Router();
 
 // Read users
-router.get("/", (req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
-    
+    const response = await User.find();
+    return res.json(response)
   } catch (error) {
     next(error);
   }
 });
 
 // Create user
-router.post("/", (req, res, next) => {
+router.post("/", async (req, res, next) => {
   try {
-    const { username, email, password } = req.body;
-
-    if (!username || !email || !password) {
-      return res
-        .status(400)
-        .json({ error: "username, email, password are required!" });
+    const { username, email, password } = req.body
+    if(!username || !email || !password) {
+        return res.status(400).json({
+            message: "Missing some data."
+        })
     }
+    
+    const newUser = await User.create({ username, email, password })
 
-    const highestId = users.reduce(
-      (max, user) => Math.max(max, Number(user.id)),
-      0,
-    );
+    // Convert to JavaScript Object
+    const { password: _password, ...userWithoutPassword } = newUser.toObject();
 
-    const nextId = String(highestId + 1);
+    return res.status(201).json(userWithoutPassword)
 
-    const newUser = {
-      id: nextId,
-      username: username,
-      email: email,
-      password: password,
-    };
-
-    users.push(newUser);
-
-    return res.status(201).json(newUser);
   } catch (error) {
     next(error);
   }
 });
 
 // Update user
-router.put("/:id", (req, res, next) => {
+router.put("/:id", async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const user = users.find((user) => user.id === id);
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
+    const user = await User.findOne({ _id: req.params.id })
+    
+    if(!user) {
+      return res.json({
+        message: "Couldn't find this user."
+      })
     }
 
-    const { username, email, password } = req.body;
+    await User.updateOne({ _id: user._id}, req.body)
 
-    if (!username || !email || !password) {
-      return res
-        .status(400)
-        .json({ error: "username, email, password are required" });
-    }
-
-    user.username = username;
-    user.email = email;
-    user.password = password;
-
-    return res.status(200).json(user);
+    return res.status(200).json({
+      message: "Updating User Successfully.",
+    });
   } catch (error) {
     next(error);
   }
 });
 
 // Delete user
-router.delete("/:id", (req, res, next) => {
+router.delete("/:id", async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    // findIndex and splice()
-    const index = users.findIndex((user) => user.id === id);
-
-    if (index === -1) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    users.splice(index, 1);
-
+    await User.findByIdAndDelete(req.params.id)
     return res.status(200).json({ msg: "User deleted!!!" });
   } catch (error) {
     next(error);
