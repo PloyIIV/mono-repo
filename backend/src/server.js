@@ -1,5 +1,6 @@
 import express from "express";
 import { router as apiRoutes } from "./routes/index.js";
+import { connectDB } from "./config/db.js";
 
 const app = express();
 app.use(express.json());
@@ -178,6 +179,17 @@ app.use((err, req, res, next) => {
 
 const PORT = 3001;
 
-app.listen(PORT, () => {
-  console.log(`Sever running on PORT:${PORT} 🟢`);
-});
+async function start() {
+  try {
+    await connectDB();
+
+    app.listen(PORT, () => {
+      console.log(`Sever running on PORT:${PORT} 🟢`);
+    });
+  } catch (error) {
+    console.log("Failed to connect MongoDB",error.message)
+    process.exit(1)
+  }
+}
+
+start();
