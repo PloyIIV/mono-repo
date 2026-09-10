@@ -2,6 +2,7 @@ import { Router } from "express";
 import { User } from "../../models/user.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { authUser } from '../../middlewares/authUser.js'
 
 export const router = Router();
 
@@ -64,21 +65,72 @@ router.post("/login", async (req, res, next) => {
       expiresIn: "1h",
     });
 
-    const isProd = process.env.NODE_ENV === "production"
+    const isProd = process.env.NODE_ENV === "production";
 
     res.cookie("accessToken", token, {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? "none" : "lax",
-      path: '/',
-      maxAge: 60 * 60 * 1000
+      path: "/",
+      maxAge: 60 * 60 * 1000,
     });
 
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      user: { _id: user._id, username: user.username, role: user.role, email: user.email }
-    })
+      user: {
+        _id: user._id,
+        username: user.username,
+        role: user.role,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Lgoutou
+router.post("/logout", (req, res, next) => {
+  try {
+    const isProd = process.env.NODE_ENV === "production";
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      path: "/",
+      maxAge: 60 * 60 * 1000,
+    });
+    return res.status(200).json({
+      success: true,
+      message: "Logout successful.",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// CHECK USER'S TOKEN
+router.get("/auth", authUser, async (req, res, next) => {
+  try {
+    const userId = req.user.user._id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      data: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
+    });
   } catch (error) {
     next(error);
   }
