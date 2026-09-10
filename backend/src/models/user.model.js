@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from 'bcrypt'
 
 const userSchema = new mongoose.Schema(
   {
@@ -10,10 +11,18 @@ const userSchema = new mongoose.Schema(
       trim: true,
       match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Invalid email format"],
     },
-    password: { type: String },
+    password: { type: String, select: false },
+    role: { type: String, enum: ["user", "admin"], default: "user"}
   },
   {
     timestamps: true,
   },
 );
+
+// Hash password before saving to database
+userSchema.pre("save", async function() {
+  if(!this.isModified("password")) return; // ถ้า password ถูกเปลี่ยน ก็ return ไปเลย
+  this.password = await bcrypt.hash(this.password, 12)
+})
+
 export const User = mongoose.model("User", userSchema);
